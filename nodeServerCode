@@ -1,0 +1,128 @@
+var http = require("http");
+var url = require("url");
+var Router = require('node-simple-router');
+var router = Router();
+var qs = require('querystring');
+var mongoose = require('mongoose');
+var express = require('express');
+var app = express();
+var path = require('path');
+var bodyParser = require('body-parser');
+// mongo connection and use 
+	mongoose.connect('mongodb://localhost/appJobs');
+	var db = mongoose.connection;
+	//mongo scheme 
+	var jobSchema = mongoose.Schema({ bName: String ,bUrl: String, phone :Number ,location:[{longitude:Number,latitude:Number}],Email:String,field:String,exp:String});
+	var job = mongoose.model('jobs',jobSchema);
+
+db.on('error', function() {console.log("error")});
+db.once('open', function () {
+	console.log("connected!");
+
+});
+ 
+
+// start endle req\res
+app.use(bodyParser.json());
+app.get('/postion', function(req, res){
+	console.log("request method :" + req.method);
+	 //var postion = url.parse(req.url,true).query;
+	
+    // get query params as object
+    
+		 // Website you wish to allow to connect
+    res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:8020');
+
+    // Request methods you wish to allow
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // Request headers you wish to allow
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+	
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+
+    // Pass to next layer of middleware
+	res.end("geolocation is OK");
+    
+});
+app.get('/find', function(req, res){
+	console.log("request method :" + req.method);
+	
+	var QueryParams;
+	// get query params as object
+     var queryObject = url.parse(req.url,true).query;
+	console.log(queryObject);
+	console.log(" field : " +queryObject.wField +" exp :" +queryObject.wExp );
+
+	 // Website you wish to allow to connect
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Request methods you wish to allow
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // Request headers you wish to allow
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+	res.setHeader('Content-Type', 'application/json');
+
+    // Pass to next layer of middleware
+	// finding a job that match user field & exp
+    	mongoose.model('jobs').find({$or:[{"field":queryObject.wField},{"exp":queryObject.wExp}]},function(err,jobs){
+		
+		if(err){
+		console.log("Error");
+		} else {
+		console.log("matching : " + jobs);
+		// return job\s that match fields :
+		res.send( jobs );
+			}
+		});
+	
+});
+app.get('/postJob', function(req,res){
+	console.log("request method :" + req.method);
+    // Website you wish to allow to connect
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Request methods you wish to allow
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // Request headers you wish to allow
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+	res.setHeader('Content-Type', 'application/json');
+    // Pass to next layer 
+	
+	console.log("Data :");
+	var postObject = url.parse(req.url,true).query;
+	//user data , testing : postObject.arguments[]
+	console.log(postObject);
+	console.log(postObject.bname);
+	// creating new job
+	var newJob = new job();
+	
+	newJob.bName = postObject.bname;
+	newJob.bUrl = postObject.burl;
+	newJob.phone = postObject.bPhone;
+	newJob.Email = postObject.bEmail;
+	newJob.field = postObject.fieldSelected;
+	// saving & send 
+	newJob.save();
+	res.send('OK!');
+	
+
+	    
+});
+
+// listen at local host:3000
+var server = app.listen(3000, function() {
+    console.log('Listening on port %d', server.address().port);
+});
